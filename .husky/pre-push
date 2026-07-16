@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+
+# Logic to detect package manager
+if [ -f "pnpm-lock.yaml" ] && command -v pnpm >/dev/null 2>&1; then
+  PM="pnpm"
+elif [ -f "package-lock.json" ]; then
+  PM="npm"
+elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+  PM="yarn"
+else
+  echo "⚠️ Using npm as fallback..."
+  PM="npm"
+fi
+
+echo "🔨 Detected $PM. Running build validation..."
+
+if ! $PM run build; then
+  echo "❌ Build failed! Push aborted."
+  exit 1
+fi
+
+echo "✅ Build successful!"
