@@ -1,0 +1,22 @@
+[
+  {
+    "id": "cameras",
+    "label": "Cameras"
+  },
+  {
+    "id": "sensors",
+    "label": "Sensors"
+  },
+  {
+    "id": "accessories",
+    "label": "accessories"
+  },
+  {
+    "id": "plan",
+    "label": "plan"
+  },
+  {
+    "id": "shipping",
+    "label": ""
+  }
+]
