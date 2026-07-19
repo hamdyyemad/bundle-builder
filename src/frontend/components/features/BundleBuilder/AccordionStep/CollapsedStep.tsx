@@ -1,4 +1,4 @@
-import { StepHeader } from "@/components/ui";
+import { StepHeader } from "@/frontend/components/ui";
 import type { StepContentProps } from "./types";
 
 type CollapsedStepProps = Pick<

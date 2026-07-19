@@ -1,5 +1,5 @@
-import { Button, ProductCard } from "@/components/ui";
-import type { CatalogProduct } from "@/lib/bundle";
+import { Button, ProductCard } from "@/frontend/components/ui";
+import type { CatalogProduct } from "@/frontend/lib/bundle";
 import type { AccordionStepProps } from "./types";
 
 type StepProductListProps = {

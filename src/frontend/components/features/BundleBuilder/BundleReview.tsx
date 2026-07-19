@@ -1,5 +1,5 @@
 import { ReviewSection } from "./ReviewSection";
-import type { useBundleBuilder } from "@/hooks";
+import type { useBundleBuilder } from "@/frontend/hooks";
 
 type Bundle = ReturnType<typeof useBundleBuilder>;
 

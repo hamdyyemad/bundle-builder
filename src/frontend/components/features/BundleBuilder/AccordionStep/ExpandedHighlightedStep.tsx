@@ -1,5 +1,5 @@
-import { StepHeader } from "@/components/ui";
-import { catalog, formatNextLabel } from "@/lib/bundle";
+import { StepHeader } from "@/frontend/components/ui";
+import { catalog, formatNextLabel } from "@/frontend/lib/bundle";
 import type { StepContentProps } from "./types";
 import { StepProductList } from "./StepProductList";
 import { StepEmptyState } from "./StepEmptyState";

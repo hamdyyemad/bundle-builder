@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
-import type { CatalogProduct } from "@/lib/bundle";
-import { getProductBadge } from "@/lib/bundle";
-import { ColorSwatch } from "@/components/ui/ColorSwatch";
-import { QuantitySelector } from "@/components/ui/QuantitySelector";
-import { PriceDisplay } from "@/components/ui/PriceDisplay";
+import { cn } from "@/frontend/lib/cn";
+import type { CatalogProduct } from "@/frontend/lib/bundle";
+import { getProductBadge } from "@/frontend/lib/bundle";
+import { ColorSwatch } from "@/frontend/components/ui/ColorSwatch";
+import { QuantitySelector } from "@/frontend/components/ui/QuantitySelector";
+import { PriceDisplay } from "@/frontend/components/ui/PriceDisplay";
 
 type ProductCardProps = {
   product: CatalogProduct;

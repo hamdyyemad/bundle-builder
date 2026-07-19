@@ -18,7 +18,7 @@ import {
   lineKey,
   productHasAnyQuantity,
   type PersistedBundleState,
-} from "@/lib/bundle";
+} from "@/frontend/lib/bundle";
 
 function readSavedState(): PersistedBundleState | null {
   try {
