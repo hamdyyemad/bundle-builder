@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui";
+import { Button } from "@/frontend/components/ui";
 
 type StepEmptyStateProps = {
   stepTitle: string;

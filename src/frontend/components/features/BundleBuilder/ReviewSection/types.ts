@@ -1,6 +1,6 @@
-import type { ReviewLine } from "@/lib/bundle";
-import type { ProductCategory } from "@/lib/categories";
-import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/categories";
+import type { ReviewLine } from "@/frontend/lib/bundle";
+import type { ProductCategory } from "@/frontend/lib/categories";
+import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/frontend/lib/categories";
 
 export type ReviewSectionProps = {
   items: ReviewLine[];

@@ -1,4 +1,4 @@
-import { gilroy, siteMetadata } from "@/data/site";
+import { gilroy, siteMetadata } from "@/frontend/data/site";
 import "./globals.css";
 
 export const metadata = siteMetadata;

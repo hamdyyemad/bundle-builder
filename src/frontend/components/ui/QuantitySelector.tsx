@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/cn";
-import { AssetImage } from "@/components/ui/AssetImage";
+import { cn } from "@/frontend/lib/cn";
+import { AssetImage } from "@/frontend/components/ui/AssetImage";
 
 type QuantitySelectorProps = {
   value: number;

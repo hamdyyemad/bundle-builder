@@ -1,6 +1,6 @@
 import { AccordionStep } from "./AccordionStep";
-import type { useBundleBuilder } from "@/hooks";
-import type { BundleLayout } from "@/hooks";
+import type { useBundleBuilder } from "@/frontend/hooks";
+import type { BundleLayout } from "@/frontend/hooks";
 
 type Bundle = ReturnType<typeof useBundleBuilder>;
 
