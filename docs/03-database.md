@@ -135,10 +135,38 @@ Vercel ignores the Dockerfile entirely — it builds Next.js on its own platform
 
 ## Deploying to Vercel
 
+Nothing needs configuring in the Vercel dashboard's Build & Development
+Settings — leave every field on its default. The repo handles it:
+
+- **`vercel-build`** in `package.json` runs `prisma migrate deploy && next build`.
+  Vercel prefers this script over `build` automatically, so migrations apply on
+  every deploy.
+- **`postinstall`** runs `prisma generate` during install.
+- **`next.config.ts`** drops `output: "standalone"` when `VERCEL` is set —
+  standalone is for the Docker image and Vercel builds its own output.
+
+Steps:
+
 1. Provision Postgres (the Neon integration works well) and set `DATABASE_URL`.
 2. Set `REVALIDATE_SECRET` — generate with `openssl rand -hex 32`.
    **Never ship the `dev-only-change-me` placeholder.**
-3. Set the build command to `prisma migrate deploy && next build`.
-4. Run `pnpm db:seed` once against production.
-5. Set `APP_URL` if you are behind a proxy or custom domain (otherwise
-   `VERCEL_URL` is used automatically).
+3. Deploy. The first build creates the tables.
+4. Seed the catalog once, from your machine, pointed at the production database:
+
+   ```bash
+   DATABASE_URL="<production-url>" pnpm db:seed
+   ```
+
+   The seed is idempotent, so re-running it is safe.
+5. Set `APP_URL` only if you are behind a proxy or custom domain — otherwise
+   `VERCEL_URL` is used automatically.
+
+### Connection pooling
+
+Serverless functions open many short-lived connections. Use your provider's
+**pooled** connection string for `DATABASE_URL` (Neon and Supabase both offer
+one), or you will exhaust the connection limit under load.
+
+Prisma Migrate needs a **direct** (unpooled) connection. If your provider
+requires that split, run migrations with the direct URL rather than the pooled
+one.

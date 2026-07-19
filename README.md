@@ -122,11 +122,15 @@ database, not the app.
 ## Deploy on Vercel
 
 Vercel does not use the Dockerfile; it builds Next.js on its own platform.
+Leave the Build & Development Settings on their defaults — `vercel-build` and
+`postinstall` in `package.json` handle migrations and client generation.
 
-1. Provision Postgres (e.g. the Neon integration) and set `DATABASE_URL`.
+1. Provision Postgres (e.g. the Neon integration) and set `DATABASE_URL` —
+   use the **pooled** connection string.
 2. Set `REVALIDATE_SECRET` — `openssl rand -hex 32`.
-3. Build command: `prisma migrate deploy && next build`.
-4. Run `pnpm db:seed` once against production.
+3. Deploy. The first build runs `prisma migrate deploy` and creates the tables.
+4. Seed once, from your machine:
+   `DATABASE_URL="<production-url>" pnpm db:seed`
 
 Full details in [docs/03-database.md](docs/03-database.md).
 
