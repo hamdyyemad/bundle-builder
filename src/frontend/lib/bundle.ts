@@ -1,4 +1,3 @@
-import bundleData from "@/frontend/data/bundle/catalog.json";
 import { CATEGORY_ORDER, ProductCategory } from "@/frontend/lib/categories";
 import type { ProductCategory as CategoryId } from "@/frontend/lib/categories";
 export type VariantOption = {
@@ -82,10 +81,6 @@ export type BundleCatalog = {
   advantages: CatalogAdvantage[];
 };
 
-type CatalogJson = Omit<BundleCatalog, "steps"> & {
-  steps: CatalogStep[];
-};
-
 export function formatStepLabel(stepId: number, totalSteps: number) {
   return `Step ${stepId} of ${totalSteps}`;
 }
@@ -120,16 +115,16 @@ export type ReviewLine = {
   showStepper: boolean;
 };
 
-const catalogJson = bundleData as CatalogJson;
-
-export const catalog: BundleCatalog = {
-  ...catalogJson,
-  plans: catalogJson.plans ?? [],
-  advantages: catalogJson.advantages ?? [],
-  steps: catalogJson.steps.map((step, _, steps) => ({
-    ...step,
-    label: formatStepLabel(step.id, steps.length),
-  })),
+/**
+ * Placeholder used before the server-fetched catalog is available (and by the
+ * seed state on first render). Real data comes from the DB via CatalogProvider.
+ */
+export const EMPTY_CATALOG: BundleCatalog = {
+  financingLabel: "",
+  steps: [],
+  products: [],
+  plans: [],
+  advantages: [],
 };
 
 export const STORAGE_KEY = "wyze-bundle-system-v2";
@@ -152,12 +147,14 @@ export function advantageAsProduct(advantage: CatalogAdvantage): CatalogProduct 
   };
 }
 
-export function getAdvantage(advantageId: string) {
+export function getAdvantage(catalog: BundleCatalog, advantageId: string) {
   return catalog.advantages.find((item) => item.id === advantageId);
 }
 
 /** Products + plans shown in accordion step grids. */
-export function getSelectableStepItems(): CatalogProduct[] {
+export function getSelectableStepItems(
+  catalog: BundleCatalog,
+): CatalogProduct[] {
   return [
     ...catalog.products.filter((product) => product.selectable),
     ...catalog.plans
@@ -175,16 +172,19 @@ export function parseLineKey(key: string) {
   return { productId, variantId: variantId || undefined };
 }
 
-export function getPlan(planId: string) {
+export function getPlan(catalog: BundleCatalog, planId: string) {
   return catalog.plans.find((plan) => plan.id === planId);
 }
 
-export function getProduct(productId: string): CatalogProduct | undefined {
+export function getProduct(
+  catalog: BundleCatalog,
+  productId: string,
+): CatalogProduct | undefined {
   const product = catalog.products.find((item) => item.id === productId);
   if (product) return product;
-  const plan = getPlan(productId);
+  const plan = getPlan(catalog, productId);
   if (plan) return planAsProduct(plan);
-  const advantage = getAdvantage(productId);
+  const advantage = getAdvantage(catalog, productId);
   return advantage ? advantageAsProduct(advantage) : undefined;
 }
 
@@ -222,10 +222,11 @@ export function productHasAnyQuantity(
 }
 
 export function countSelectedInStep(
+  catalog: BundleCatalog,
   stepId: number,
   quantities: Record<string, number>,
 ) {
-  const items = getSelectableStepItems().filter(
+  const items = getSelectableStepItems(catalog).filter(
     (product) => product.stepId === stepId,
   );
   return items.filter((product) => productHasAnyQuantity(product, quantities))
@@ -233,6 +234,7 @@ export function countSelectedInStep(
 }
 
 export function buildReviewLines(
+  catalog: BundleCatalog,
   quantities: Record<string, number>,
 ): ReviewLine[] {
   const lines: ReviewLine[] = [];
@@ -305,7 +307,10 @@ function toReviewLine(
   };
 }
 
-export function calculatePricing(lines: ReviewLine[]) {
+export function calculatePricing(
+  catalog: BundleCatalog,
+  lines: ReviewLine[],
+) {
   const contributing = lines.filter(
     (line) => line.category !== ProductCategory.Shipping,
   );
@@ -358,6 +363,7 @@ export function getProductBadge(
 
 /** Force locked / review-only defaults (hub, included advantages) into quantities. */
 export function applyDefaultSelections(
+  catalog: BundleCatalog,
   quantities: Record<string, number>,
 ): Record<string, number> {
   const next = { ...quantities };
@@ -378,10 +384,10 @@ export function applyDefaultSelections(
 }
 
 /** First step open; hub + included advantages selected by default. */
-export function createSeedState(): PersistedBundleState {
+export function createSeedState(catalog: BundleCatalog): PersistedBundleState {
   return {
     expandedStep: catalog.steps[0]?.id ?? 1,
     activeVariants: {},
-    quantities: applyDefaultSelections({}),
+    quantities: applyDefaultSelections(catalog, {}),
   };
 }
