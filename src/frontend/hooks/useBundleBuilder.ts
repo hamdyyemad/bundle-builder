@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCatalog } from "@/frontend/lib/CatalogContext";
+import { createOrder as createOrderRequest } from "@/frontend/api";
+import { useCatalog } from "@/frontend/providers";
 import {
   STORAGE_KEY,
   applyDefaultSelections,
@@ -211,20 +212,11 @@ export function useBundleBuilder() {
   const checkout = useCallback(async () => {
     setCheckoutPending(true);
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantities: stateRef.current.quantities }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Checkout failed");
-      }
+      const order = await createOrderRequest(stateRef.current.quantities);
 
       // The server reprices from the catalog, so show its total, not the local one.
       setCheckoutMessage(
-        `Order ${payload.id} placed — total $${payload.total.toFixed(2)}.`,
+        `Order ${order.id} placed — total $${order.total.toFixed(2)}.`,
       );
     } catch (error) {
       setCheckoutMessage(
