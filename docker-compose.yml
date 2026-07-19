@@ -1,0 +1,23 @@
+# Local dev database. Vercel does not use this file — it builds Next.js on its
+# own platform and connects to a hosted Postgres via DATABASE_URL.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bundle
+      POSTGRES_PASSWORD: bundle
+      POSTGRES_DB: bundle_builder
+    # Host port 5433: 5432 is commonly taken by a locally installed Postgres.
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bundle -d bundle_builder"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

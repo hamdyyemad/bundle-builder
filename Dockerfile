@@ -1,5 +1,8 @@
 # syntax=docker.io/docker/dockerfile:1
 
+# Note: Vercel does not use this file — it builds Next.js on its own platform.
+# This is for local `docker compose` runs and any non-Vercel deploy target.
+
 FROM node:22-alpine AS base
 
 FROM base AS deps
@@ -7,6 +10,10 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# The postinstall hook runs `prisma generate`, so the schema and its config must
+# be present before install.
+COPY prisma.config.ts ./
+COPY prisma ./prisma
 RUN corepack enable pnpm && pnpm i --frozen-lockfile
 
 FROM base AS builder
@@ -16,7 +23,8 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable pnpm && pnpm run build
+# Regenerate against the full source tree, then build.
+RUN corepack enable pnpm && pnpm exec prisma generate && pnpm run build
 
 FROM base AS runner
 WORKDIR /app
@@ -30,6 +38,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Schema + migrations so the container can run `prisma migrate deploy` on start.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 USER nextjs
 
