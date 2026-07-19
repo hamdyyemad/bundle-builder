@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { cn } from "@/lib/cn";
-import type { ReviewLine } from "@/lib/bundle";
-import { ProductCategory } from "@/lib/categories";
-import { QuantitySelector } from "@/components/ui/QuantitySelector";
-import { PriceDisplay } from "@/components/ui/PriceDisplay";
-import { AssetImage } from "@/components/ui/AssetImage";
+import { cn } from "@/frontend/lib/cn";
+import type { ReviewLine } from "@/frontend/lib/bundle";
+import { ProductCategory } from "@/frontend/lib/categories";
+import { QuantitySelector } from "@/frontend/components/ui/QuantitySelector";
+import { PriceDisplay } from "@/frontend/components/ui/PriceDisplay";
+import { AssetImage } from "@/frontend/components/ui/AssetImage";
 
 type ReviewLineItemProps = {
   item: ReviewLine;

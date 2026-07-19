@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/frontend/lib/cn";
 
 type ButtonProps = {
   children: React.ReactNode;

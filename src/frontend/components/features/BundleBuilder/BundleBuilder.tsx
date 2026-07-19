@@ -2,7 +2,7 @@
 
 import { BundleReview } from "./BundleReview";
 import { BundleSteps } from "./BundleSteps";
-import { useBundleBuilder, useBundleLayout } from "@/hooks";
+import { useBundleBuilder, useBundleLayout } from "@/frontend/hooks";
 
 type BundleBuilderState = ReturnType<typeof useBundleBuilder>;
 

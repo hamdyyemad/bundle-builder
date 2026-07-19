@@ -1,4 +1,4 @@
-import categoryData from "@/data/bundle/category.json";
+import categoryData from "@/frontend/data/bundle/category.json";
 
 /**
  * Enum-like category ids. Keep values in sync with `category.json`.

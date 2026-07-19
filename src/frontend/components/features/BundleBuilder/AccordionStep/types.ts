@@ -1,5 +1,5 @@
-import type { CatalogProduct, StepDefinition } from "@/lib/bundle";
-import type { useBundleBuilder } from "@/hooks/useBundleBuilder";
+import type { CatalogProduct, StepDefinition } from "@/frontend/lib/bundle";
+import type { useBundleBuilder } from "@/frontend/hooks/useBundleBuilder";
 
 export type AccordionStepProps = {
   step: StepDefinition;

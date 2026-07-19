@@ -1,6 +1,6 @@
-import bundleData from "@/data/bundle/catalog.json";
-import { CATEGORY_ORDER, ProductCategory } from "@/lib/categories";
-import type { ProductCategory as CategoryId } from "@/lib/categories";
+import bundleData from "@/frontend/data/bundle/catalog.json";
+import { CATEGORY_ORDER, ProductCategory } from "@/frontend/lib/categories";
+import type { ProductCategory as CategoryId } from "@/frontend/lib/categories";
 export type VariantOption = {
   id: string;
   label: string;
