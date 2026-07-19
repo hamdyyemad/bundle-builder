@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCatalog } from "@/frontend/lib/CatalogContext";
 import {
   STORAGE_KEY,
   applyDefaultSelections,
   buildReviewLines,
   calculatePricing,
-  catalog,
   countSelectedInStep as countSelectedInStepHelper,
   createSeedState,
   getActiveVariantId,
@@ -17,10 +17,11 @@ import {
   isPlanItem,
   lineKey,
   productHasAnyQuantity,
+  type BundleCatalog,
   type PersistedBundleState,
 } from "@/frontend/lib/bundle";
 
-function readSavedState(): PersistedBundleState | null {
+function readSavedState(catalog: BundleCatalog): PersistedBundleState | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -29,7 +30,7 @@ function readSavedState(): PersistedBundleState | null {
     return {
       expandedStep: parsed.expandedStep ?? catalog.steps[0]?.id ?? 1,
       activeVariants: parsed.activeVariants,
-      quantities: applyDefaultSelections(parsed.quantities),
+      quantities: applyDefaultSelections(catalog, parsed.quantities),
     };
   } catch {
     return null;
@@ -48,9 +49,13 @@ function readSavedState(): PersistedBundleState | null {
  * actions for navigating steps and updating the cart.
  */
 export function useBundleBuilder() {
-  const [state, setState] = useState<PersistedBundleState>(createSeedState);
+  const catalog = useCatalog();
+  const [state, setState] = useState<PersistedBundleState>(() =>
+    createSeedState(catalog),
+  );
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
+  const [checkoutPending, setCheckoutPending] = useState(false);
 
   const stateRef = useRef(state);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -62,12 +67,12 @@ export function useBundleBuilder() {
 
   // Restore after mount so SSR HTML matches the seed first paint.
   useEffect(() => {
-    const saved = readSavedState();
+    const saved = readSavedState(catalog);
     if (saved) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage hydrate
       setState(saved);
     }
-  }, []);
+  }, [catalog]);
 
   useEffect(() => {
     return () => {
@@ -83,18 +88,18 @@ export function useBundleBuilder() {
   const { expandedStep, activeVariants, quantities } = state;
 
   const reviewLines = useMemo(
-    () => buildReviewLines(quantities),
-    [quantities],
+    () => buildReviewLines(catalog, quantities),
+    [catalog, quantities],
   );
 
-  const pricing = useMemo(() => calculatePricing(reviewLines), [reviewLines]);
-  const pricingTotalRef = useRef(pricing.total);
-
-  useEffect(() => {
-    pricingTotalRef.current = pricing.total;
-  }, [pricing.total]);
-
-  const selectableProducts = useMemo(() => getSelectableStepItems(), []);
+  const pricing = useMemo(
+    () => calculatePricing(catalog, reviewLines),
+    [catalog, reviewLines],
+  );
+  const selectableProducts = useMemo(
+    () => getSelectableStepItems(catalog),
+    [catalog],
+  );
 
   const setActiveVariant = useCallback((productId: string, variantId: string) => {
     setState((prev) => ({
@@ -106,7 +111,7 @@ export function useBundleBuilder() {
   const setProductCardQuantity = useCallback(
     (productId: string, quantity: number) => {
       setState((prev) => {
-        const product = getProduct(productId);
+        const product = getProduct(catalog, productId);
         if (!product || product.locked || isPlanItem(product)) return prev;
 
         const variantId = getActiveVariantId(product, prev.activeVariants);
@@ -122,17 +127,17 @@ export function useBundleBuilder() {
 
         return {
           ...prev,
-          quantities: applyDefaultSelections(nextQuantities),
+          quantities: applyDefaultSelections(catalog, nextQuantities),
         };
       });
     },
-    [],
+    [catalog],
   );
 
   /** Plans are pick-only: selected = qty 1, deselected = removed. */
   const togglePlanSelection = useCallback((planId: string) => {
     setState((prev) => {
-      const plan = getProduct(planId);
+      const plan = getProduct(catalog, planId);
       if (!plan || !isPlanItem(plan)) return prev;
 
       const nextQuantities = { ...prev.quantities };
@@ -141,15 +146,15 @@ export function useBundleBuilder() {
 
       return {
         ...prev,
-        quantities: applyDefaultSelections(nextQuantities),
+        quantities: applyDefaultSelections(catalog, nextQuantities),
       };
     });
-  }, []);
+  }, [catalog]);
 
   const setReviewLineQuantity = useCallback((key: string, quantity: number) => {
     setState((prev) => {
       const [productId, variantId] = key.split(":");
-      const product = getProduct(productId);
+      const product = getProduct(catalog, productId);
       if (!product || product.locked || isPlanItem(product)) return prev;
 
       let nextQty = Math.max(0, quantity);
@@ -164,10 +169,10 @@ export function useBundleBuilder() {
 
       return {
         ...prev,
-        quantities: applyDefaultSelections(nextQuantities),
+        quantities: applyDefaultSelections(catalog, nextQuantities),
       };
     });
-  }, []);
+  }, [catalog]);
 
   const toggleStep = useCallback((stepId: number) => {
     setState((prev) => ({
@@ -183,7 +188,7 @@ export function useBundleBuilder() {
       // Last step: collapse so the review panel is the focus
       expandedStep: next?.id ?? 0,
     }));
-  }, []);
+  }, [catalog.steps]);
 
   const saveForLater = useCallback(() => {
     window.localStorage.setItem(
@@ -203,10 +208,33 @@ export function useBundleBuilder() {
     }, 3500);
   }, []);
 
-  const checkout = useCallback(() => {
-    setCheckoutMessage(
-      `Checkout ready — total $${pricingTotalRef.current.toFixed(2)}. (Prototype confirmation)`,
-    );
+  const checkout = useCallback(async () => {
+    setCheckoutPending(true);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantities: stateRef.current.quantities }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Checkout failed");
+      }
+
+      // The server reprices from the catalog, so show its total, not the local one.
+      setCheckoutMessage(
+        `Order ${payload.id} placed — total $${payload.total.toFixed(2)}.`,
+      );
+    } catch (error) {
+      setCheckoutMessage(
+        error instanceof Error
+          ? `Checkout failed: ${error.message}`
+          : "Checkout failed. Please try again.",
+      );
+    } finally {
+      setCheckoutPending(false);
+    }
 
     if (checkoutTimeoutRef.current != null) {
       window.clearTimeout(checkoutTimeoutRef.current);
@@ -214,12 +242,12 @@ export function useBundleBuilder() {
     checkoutTimeoutRef.current = window.setTimeout(() => {
       setCheckoutMessage(null);
       checkoutTimeoutRef.current = null;
-    }, 4000);
+    }, 6000);
   }, []);
 
   const getCardView = useCallback(
     (productId: string) => {
-      const product = getProduct(productId);
+      const product = getProduct(catalog, productId);
       if (!product) return null;
       const activeVariantId = getActiveVariantId(product, activeVariants);
       const quantity = getQuantityForProduct(
@@ -239,12 +267,12 @@ export function useBundleBuilder() {
         selectionMode: isPlanItem(product) ? ("pick" as const) : ("quantity" as const),
       };
     },
-    [activeVariants, quantities],
+    [catalog, activeVariants, quantities],
   );
 
   const countSelectedInStep = useCallback(
-    (stepId: number) => countSelectedInStepHelper(stepId, quantities),
-    [quantities],
+    (stepId: number) => countSelectedInStepHelper(catalog, stepId, quantities),
+    [catalog, quantities],
   );
 
   return {
@@ -257,6 +285,7 @@ export function useBundleBuilder() {
     pricing,
     saveMessage,
     checkoutMessage,
+    checkoutPending,
     toggleStep,
     goToNextStep,
     setActiveVariant,

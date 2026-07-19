@@ -1,5 +1,6 @@
 import { StepHeader } from "@/frontend/components/ui";
-import { catalog, formatNextLabel } from "@/frontend/lib/bundle";
+import { formatNextLabel } from "@/frontend/lib/bundle";
+import { useCatalog } from "@/frontend/lib/CatalogContext";
 import type { StepContentProps } from "./types";
 import { StepProductList } from "./StepProductList";
 import { StepEmptyState } from "./StepEmptyState";
@@ -19,6 +20,7 @@ export function ExpandedHighlightedStep({
   productLayout = "grid",
   className,
 }: StepContentProps) {
+  const catalog = useCatalog();
   const nextLabel = formatNextLabel(step.nextLabel);
   const isLastStep = step.id === catalog.steps.at(-1)?.id;
 
