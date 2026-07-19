@@ -1,0 +1,148 @@
+// Catalog schema. Mirrors the shapes in src/lib/bundle.ts so the query layer can
+// map rows back to CatalogProduct / CatalogPlan / CatalogAdvantage unchanged.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL lives in prisma.config.ts (Migrate) and in the
+// driver adapter passed to PrismaClient (runtime), not here.
+datasource db {
+  provider = "postgresql"
+}
+
+/// Products, plans and advantages share nearly every field, so they live in one
+/// table separated by `kind` rather than three near-identical tables.
+enum ItemKind {
+  PRODUCT
+  PLAN
+  ADVANTAGE
+}
+
+model Category {
+  id    String @id
+  /// Review-section group heading (empty string = no heading).
+  label String
+  /// Review sort order — replaces the array order of category.json.
+  sortOrder Int
+
+  steps Step[]
+  items Item[]
+
+  @@map("categories")
+}
+
+model Step {
+  id Int @id
+
+  title String
+  /// Destination copy only — UI prefixes with "Next: ".
+  nextLabel String
+  icon      String
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  items Item[]
+
+  @@map("steps")
+}
+
+model Item {
+  id   String   @id
+  kind ItemKind
+
+  /// Null for advantages, which are not tied to an accordion step.
+  stepId Int?
+  step   Step? @relation(fields: [stepId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  name        String
+  description String
+  image       String
+
+  /// Money as integer cents — avoids float drift in pricing math.
+  priceCents          Int
+  compareAtPriceCents Int?
+  priceLabel          String?
+  compareAtSuffix     String?
+
+  /// Shown in step product grids.
+  selectable Boolean @default(false)
+  /// In the cart at qty 1 on first load.
+  defaultSelected Boolean @default(false)
+  /// Quantity is fixed — no stepper.
+  locked Boolean @default(false)
+  /// Advantages only: always present in cart / review.
+  included Boolean @default(false)
+  /// Max quantity that can be added; null = unbounded.
+  countInStock Int?
+
+  /// Grid order within a step.
+  sortOrder Int
+
+  variants Variant[]
+
+  @@index([stepId])
+  @@index([categoryId])
+  @@map("items")
+}
+
+model Variant {
+  /// Variant ids repeat across items ("white", "black"), so the key is composite.
+  itemId String
+  id     String
+
+  label String
+  image String
+
+  sortOrder Int
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, id])
+  @@map("variants")
+}
+
+/// Single-row table for catalog-wide display copy.
+model CatalogSettings {
+  id             Int    @id @default(1)
+  financingLabel String
+
+  @@map("catalog_settings")
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  /// Server-recomputed totals, in cents. Never trusted from the client.
+  totalCents         Int
+  originalTotalCents Int
+  savingsCents       Int
+
+  lines OrderLine[]
+
+  @@map("orders")
+}
+
+model OrderLine {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Item/variant are denormalised: an order must survive catalog edits.
+  itemId    String
+  variantId String?
+  name      String
+
+  quantity            Int
+  unitPriceCents      Int
+  compareAtPriceCents Int?
+  lineTotalCents      Int
+
+  @@index([orderId])
+  @@map("order_lines")
+}
